@@ -1,31 +1,31 @@
 # uas-PEMROGRAMAN-PYTHON-LANJUT-Tata-Grace
-import pandas as pd
-from PIL import Image, ImageDraw, ImageFont
-import qrcode
-import os
-
-# --- KONFIGURASI ---
-FILES = {
-    "template": "template.jpg",
-    "excel": "peserta.xlsx",
-    "font_main": "GreatVibes-Regular.ttf",
-    "font_sub": "arial.ttf",
-    "logo": "logo_amikom.png" 
-}
-
-COLORS = {"gold": "#D4AF37", "dark": "#2C3E50", "line": "#2C3E50"}
-OUTPUT_FOLDER = "hasil_sertifikat"
-
-if not os.path.exists(OUTPUT_FOLDER):
-    os.makedirs(OUTPUT_FOLDER)
-
-def generate_sertifikat_final():
-    try:
-        df = pd.read_excel(FILES["excel"])
-        print(f"Memproses {len(df)} sertifikat...")
-    except Exception as e:
-        print(f"Gagal: {e}")
-        return
+    import pandas as pd
+    from PIL import Image, ImageDraw, ImageFont
+    import qrcode
+    import os
+    
+    # --- KONFIGURASI ---
+    FILES = {
+        "template": "template.jpg",
+        "excel": "peserta.xlsx",
+        "font_main": "GreatVibes-Regular.ttf",
+        "font_sub": "arial.ttf",
+        "logo": "logo_amikom.png" 
+    }
+    
+    COLORS = {"gold": "#D4AF37", "dark": "#2C3E50", "line": "#2C3E50"}
+    OUTPUT_FOLDER = "hasil_sertifikat"
+    
+    if not os.path.exists(OUTPUT_FOLDER):
+        os.makedirs(OUTPUT_FOLDER)
+    
+    def generate_sertifikat_final():
+        try:
+            df = pd.read_excel(FILES["excel"])
+            print(f"Memproses {len(df)} sertifikat...")
+        except Exception as e:
+            print(f"Gagal: {e}")
+            return
 
     for i, row in df.iterrows():
         nama = str(row['Nama']).title()
@@ -109,5 +109,5 @@ def generate_sertifikat_final():
         img.save(save_path, quality=100)
         print(f"Selesai: {nama}")
 
-if __name__ == "__main__":
+    if __name__ == "__main__":
     generate_sertifikat_final()
