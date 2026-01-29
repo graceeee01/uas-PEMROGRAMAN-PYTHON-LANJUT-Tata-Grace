@@ -1,0 +1,112 @@
+import pandas as pd
+from PIL import Image, ImageDraw, ImageFont
+import qrcode
+import os
+
+# --- KONFIGURASI ---
+FILES = {
+    "template": "template.jpg",
+    "excel": "peserta.xlsx",
+    "font_main": "GreatVibes-Regular.ttf",
+    "font_sub": "arial.ttf",
+    "logo": "logo_amikom.png" 
+}
+
+COLORS = {"gold": "#D4AF37", "dark": "#2C3E50", "line": "#2C3E50"}
+OUTPUT_FOLDER = "hasil_sertifikat"
+
+if not os.path.exists(OUTPUT_FOLDER):
+    os.makedirs(OUTPUT_FOLDER)
+
+def generate_sertifikat_final():
+    try:
+        df = pd.read_excel(FILES["excel"])
+        print(f"Memproses {len(df)} sertifikat...")
+    except Exception as e:
+        print(f"Gagal: {e}")
+        return
+
+    for i, row in df.iterrows():
+        nama = str(row['Nama']).title()
+        predikat_raw = str(row['Predikat']).upper()
+        predikat = "DENGAN PUJIAN" if predikat_raw == "BAIK" else predikat_raw
+
+        img = Image.open(FILES["template"]).convert("RGB")
+        draw = ImageDraw.Draw(img)
+        W, H = img.size
+
+        # --- 1. UKURAN FONT ---
+        f_judul = ImageFont.truetype(FILES["font_sub"], int(H * 0.065)) 
+        f_label = ImageFont.truetype(FILES["font_sub"], int(H * 0.035)) 
+        f_nama  = ImageFont.truetype(FILES["font_main"], int(H * 0.16)) 
+        f_ket   = ImageFont.truetype(FILES["font_sub"], int(H * 0.028)) 
+        f_hasil = ImageFont.truetype(FILES["font_sub"], int(H * 0.075)) 
+        f_sign  = ImageFont.truetype(FILES["font_sub"], int(H * 0.015))
+
+        # --- 2. PENEMPATAN TEKS UTAMA ---
+        draw.text(((W - draw.textlength("SERTIFIKAT PENGHARGAAN", f_judul))/2, H * 0.15), 
+                  "SERTIFIKAT PENGHARGAAN", font=f_judul, fill=COLORS["gold"])
+
+        draw.text(((W - draw.textlength("Diberikan kepada:", f_label))/2, H * 0.28), 
+                  "Diberikan kepada:", font=f_label, fill=COLORS["dark"])
+
+        draw.text(((W - draw.textlength(nama, f_nama))/2, H * 0.35), 
+                  nama, font=f_nama, fill=COLORS["gold"])
+
+        ket_teks = "Telah lulus mengikuti pelatihan dengan predikat:"
+        draw.text(((W - draw.textlength(ket_teks, f_ket))/2, H * 0.60), 
+                  ket_teks, font=f_ket, fill=COLORS["dark"])
+
+        draw.text(((W - draw.textlength(predikat, f_hasil))/2, H * 0.66), 
+                  predikat, font=f_hasil, fill=COLORS["dark"])
+
+        # --- 3. LOGO TENGAH (AGAK NAIK) ---
+        try:
+            logo = Image.open(FILES["logo"]).convert("RGBA")
+            logo_h = int(H * 0.12) 
+            logo_w = int(logo.size[0] * (logo_h / logo.size[1]))
+            logo = logo.resize((logo_w, logo_h), Image.Resampling.LANCZOS)
+            
+            # Koordinat Tengah Bawah (H * 0.78 agar lebih naik)
+            pos_x_logo = int((W - logo_w) / 2)
+            pos_y_logo = int(H * 0.78)
+            img.paste(logo, (pos_x_logo, pos_y_logo), logo)
+        except:
+            pass
+
+        # --- 4. QR CODE (KIRI BAWAH) ---
+        qr = qrcode.make(f"Verified: {nama}")
+        qr_size = int(H * 0.12)
+        qr_img = qr.resize((qr_size, qr_size))
+        img.paste(qr_img, (int(W * 0.05), int(H * 0.82)))
+
+        # --- 5. DUA AREA TANDA TANGAN (KIRI & KANAN LOGO) ---
+        line_w = int(W * 0.18) 
+        line_y = H * 0.88
+        
+        # A. TTD PEMBIMBING (SEBELAH KIRI)
+        x_start_pembimbing = int(W * 0.20)
+        x_end_pembimbing = x_start_pembimbing + line_w
+        draw.line([(x_start_pembimbing, line_y), (x_end_pembimbing, line_y)], fill=COLORS["line"], width=2)
+        draw.text(((x_start_pembimbing + x_end_pembimbing)/2 - draw.textlength("Pembimbing", f_sign)/2, line_y + 10), 
+                  "Pembimbing", font=f_sign, fill=COLORS["dark"])
+
+      # B. TTD KETUA PENYELENGGARA (DIGESER KE KIRI)
+        # Mengubah 0.08 menjadi 0.15 agar posisi lebih masuk ke kiri
+        x_end_ketua = W - int(W * 0.15) 
+        x_start_ketua = x_end_ketua - line_w
+        
+        # Gambar Garis
+        draw.line([(x_start_ketua, line_y), (x_end_ketua, line_y)], fill=COLORS["line"], width=2)
+        
+        # Gambar Teks (Otomatis mengikuti pergeseran garis)
+        center_ketua = (x_start_ketua + x_end_ketua) / 2
+        draw.text((center_ketua - draw.textlength("Ketua Penyelenggara", f_sign)/2, line_y + 10), 
+                  "Ketua Penyelenggara", font=f_sign, fill=COLORS["dark"])
+        # Simpan
+        save_path = os.path.join(OUTPUT_FOLDER, f"Sertifikat_{nama.replace(' ', '_')}.jpg")
+        img.save(save_path, quality=100)
+        print(f"Selesai: {nama}")
+
+if __name__ == "__main__":
+    generate_sertifikat_final()
